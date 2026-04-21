@@ -1,0 +1,31 @@
+node_modules/
+.next/
+dist/
+tmp/
+logs/
+*.log
+.DS_Store
+.env
+.env.local
+.idea/
+.vscode/
+
+# Python Virtual environments
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Executables / Binaries
+*.exe
+ngrok.exe
+cloudflared.exe
+
+# Large folders/artifacts
+backend/uploads/
+backend/test_out.pdf

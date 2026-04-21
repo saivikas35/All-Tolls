@@ -1,0 +1,25 @@
+fastapi
+uvicorn[standard]
+python-multipart
+Pillow
+
+# pdf to word fallback
+pdf2docx==0.5.8
+
+# Enhanced PDF conversion
+PyMuPDF>=1.23.0
+python-docx>=1.1.0
+
+# PDF operations (merge, split, compress)
+pypdf
+
+# Archive conversion
+py7zr
+rarfile
+
+# HTML to PDF
+xhtml2pdf
+
+# force Windows-compatible wheels
+numpy<2
+opencv-python-headless<4.13
