@@ -71,7 +71,7 @@ async def pdf_to_word(file: UploadFile = File(...)):
         converter = Converter(input_pdf)
         converter.convert(output_docx)
         converter.close()
-        print("[DEBUG] ✅ pdf2docx conversion succeeded!")
+        print("[DEBUG] [SUCCESS] pdf2docx conversion succeeded!")
         
         # Apply smart header formatting (only fixes name capitalization)
         if os.path.exists(output_docx):
@@ -80,7 +80,7 @@ async def pdf_to_word(file: UploadFile = File(...)):
                 doc = Document(output_docx)
                 doc = fix_header_formatting(doc)
                 doc.save(output_docx)
-                print("[DEBUG] ✅ Header formatting complete!")
+                print("[DEBUG] [SUCCESS] Header formatting complete!")
             except Exception as e:
                 print(f"[DEBUG] Header formatting failed (non-critical): {e}")
         
