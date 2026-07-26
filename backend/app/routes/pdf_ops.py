@@ -13,7 +13,7 @@ import base64
 import pdfplumber
 import pandas as pd
 from typing import List, Optional
-from app.utils import get_file_or_url, save_upload
+from app.utils import get_file_or_url, save_upload, clean_param
 
 router = APIRouter()
 UPLOAD_DIR = "uploads"
@@ -107,17 +107,12 @@ def pdf_split(
     url: Optional[str] = Form(default=None),
     pdfToken: Optional[str] = Form(default=None),
     pages: str = Form(default=""),
-    split_mode: str = Form(default="separate"), # "separate", "merge", or "custom"
+    split_mode: str = Form(default="separate"),
 ):
-    """
-    Execute a PDF split operation.
-    - `pdfToken`: Can be passed from the `/preview` endpoint to avoid re-uploading.
-    - `pages`: Comma separated ranges (e.g. '1-3,5', or '1,2,4,5').
-    - `split_mode`: 
-       - "separate": Each selected page becomes its own PDF (returns ZIP)
-       - "merge": All selected pages combine into ONE new PDF
-       - "custom": Splits exactly by the provided ranges (each comma group is one PDF, returns ZIP)
-    """
+    pdfToken = clean_param(pdfToken, None, str)
+    pages = clean_param(pages, "", str)
+    split_mode = clean_param(split_mode, "separate", str)
+
     if pdfToken:
         in_path = os.path.join(UPLOAD_DIR, os.path.basename(pdfToken))
         if not os.path.exists(in_path):
@@ -129,10 +124,8 @@ def pdf_split(
     total = len(reader.pages)
 
     if split_mode == "merge":
-        # Merge all selected pages into a single PDF
         writer = PdfWriter()
         if not pages.strip():
-             # Selected nothing? Return empty or error
              raise HTTPException(status_code=400, detail="No pages selected.")
         page_nums = _parse_page_ranges(pages, total)
         for pn in page_nums:
@@ -144,14 +137,12 @@ def pdf_split(
             writer.write(pf)
         return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
 
-    # Otherwise, it returns a ZIP of multiple files
     zip_name = f"split_{uuid.uuid4().hex[:8]}_AllTools.zip"
     zip_path = os.path.join(UPLOAD_DIR, zip_name)
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         if split_mode == "separate":
             if not pages.strip():
-                 # All pages
                  selected_nums = range(total)
             else:
                  selected_nums = _parse_page_ranges(pages, total)
@@ -166,7 +157,6 @@ def pdf_split(
                 zf.write(part_path, arcname=part_name)
 
         elif split_mode == "custom":
-            # Split by provided ranges, each range is a separate PDF file in the zip
             range_parts = [r.strip() for r in pages.split(",") if r.strip()]
             for idx, rng in enumerate(range_parts):
                 writer = PdfWriter()
@@ -190,9 +180,9 @@ def pdf_split(
 def pdf_remove_pages(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None),
-    pages: str = Form(...),
+    pages: str = Form(default=""),
 ):
-    """Remove specified pages. 'pages' is comma-separated 1-indexed, e.g. '2,4-6'."""
+    pages = clean_param(pages, "", str)
     if not pages.strip():
         raise HTTPException(status_code=400, detail="Please specify pages to remove.")
 
@@ -225,7 +215,6 @@ def pdf_compress(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None)
 ):
-    """Compress a PDF using pypdf's built-in optimization."""
     in_path = get_file_or_url(file, url)
     reader = PdfReader(in_path)
     writer = PdfWriter()
@@ -236,7 +225,6 @@ def pdf_compress(
     for page in writer.pages:
         page.compress_content_streams()
 
-    # Copy metadata
     if reader.metadata:
         writer.add_metadata(reader.metadata)
 
@@ -264,46 +252,40 @@ def pdf_to_excel(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None)
 ):
-    """
-    Extract tables from a PDF using pdfplumber and convert them to an Excel (.xlsx) file.
-    Each table is placed on a separate sheet.
-    """
     in_path = get_file_or_url(file, url, suffix=".pdf")
     out_name = f"excel_{uuid.uuid4().hex[:8]}_AllTools.xlsx"
     out_path = os.path.join(UPLOAD_DIR, out_name)
 
-    tables_found = 0
-    
+    extracted_tables = []
     with pdfplumber.open(in_path) as pdf:
-        # Use pandas ExcelWriter to write multiple sheets
-        with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
-            for page_num, page in enumerate(pdf.pages):
-                # Extract all tables on the current page
-                tables = page.extract_tables()
-                for table_idx, table in enumerate(tables):
-                    if not table:
-                        continue
-                        
-                    # Clean up the table (remove empty rows/cols if needed, but keeping structure is preferred)
-                    # Convert to pandas DataFrame
-                    # We assume the first row might be a header. If we want to be safe, we just write it raw.
-                    df = pd.DataFrame(table)
-                    
-                    sheet_name = f"Page {page_num + 1} - Tbl {table_idx + 1}"
-                    # Ensure sheet name is <= 31 chars as per Excel limits
-                    sheet_name = sheet_name[:31]
-                    
-                    df.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
-                    tables_found += 1
+        for page_num, page in enumerate(pdf.pages):
+            tables = page.extract_tables()
+            for table_idx, table in enumerate(tables):
+                if not table:
+                    continue
+                sheet_name = f"Page {page_num + 1} - Tbl {table_idx + 1}"[:31]
+                extracted_tables.append((sheet_name, table))
 
-    if tables_found == 0:
-        # Prevent returning an empty malformed Excel file if no tables exist
-        if os.path.exists(out_path):
-            os.remove(out_path)
-        raise HTTPException(
-            status_code=400, 
-            detail="No structural tables were detected in this PDF. Ensure the document contains actual grid tables, not just aligned text."
-        )
+    if not extracted_tables:
+        # Fallback: Extract text lines page-by-page into spreadsheet rows
+        extracted_tables = []
+        doc = fitz.open(in_path)
+        for page_num, page in enumerate(doc):
+            lines = [line.strip() for line in page.get_text("text").split("\n") if line.strip()]
+            if lines:
+                table_data = [["Line Content"]] + [[line] for line in lines]
+                sheet_name = f"Page {page_num + 1}"[:31]
+                extracted_tables.append((sheet_name, table_data))
+        doc.close()
+
+    if not extracted_tables:
+        # Final fallback: create empty sheet with note
+        extracted_tables = [("Sheet1", [["Content"], ["No text or tables found in PDF"]])]
+
+    with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+        for sheet_name, table in extracted_tables:
+            df = pd.DataFrame(table)
+            df.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
 
     return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
 
@@ -314,17 +296,14 @@ def pdf_to_excel(
 def pdf_protect(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None),
-    password: str = Form(...)
+    password: str = Form(default="")
 ):
-    """
-    Encrypt a PDF with a user password.
-    """
+    password = clean_param(password, "", str)
     if not password or not password.strip():
         raise HTTPException(status_code=400, detail="Password is required.")
         
     in_path = get_file_or_url(file, url, suffix=".pdf")
     
-    # Read the original PDF
     reader = PdfReader(in_path)
     if reader.is_encrypted:
         raise HTTPException(status_code=400, detail="Document is already encrypted.")
@@ -336,7 +315,6 @@ def pdf_protect(
     if reader.metadata:
         writer.add_metadata(reader.metadata)
         
-    # Encrypt with AES-256
     writer.encrypt(user_password=password, owner_password=None, algorithm="AES-256")
     
     out_name = f"protected_{uuid.uuid4().hex[:8]}_AllTools.pdf"
@@ -353,24 +331,28 @@ def pdf_protect(
 def pdf_unlock(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None),
-    password: str = Form(...)
+    password: str = Form(default="")
 ):
-    """
-    Remove password protection from an encrypted PDF.
-    """
-    if not password or not password.strip():
-        raise HTTPException(status_code=400, detail="Password is required to unlock.")
-        
+    password = clean_param(password, "", str)
     in_path = get_file_or_url(file, url, suffix=".pdf")
     
     reader = PdfReader(in_path)
     if not reader.is_encrypted:
-        raise HTTPException(status_code=400, detail="Document is not encrypted.")
+        # Document is not password protected — return copy as unlocked
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+        out_name = f"unlocked_{uuid.uuid4().hex[:8]}_AllTools.pdf"
+        out_path = os.path.join(UPLOAD_DIR, out_name)
+        with open(out_path, "wb") as f:
+            writer.write(f)
+        return {"success": True, "downloadUrl": f"/uploads/{out_name}", "note": "Document was not password protected."}
         
-    # Attempt to decrypt
+    if not password or not password.strip():
+        raise HTTPException(status_code=400, detail="Password is required to unlock.")
+
     decrypt_result = reader.decrypt(password)
     
-    # decrypt() returns 0 for failure, 1 for user password match, 2 for owner password match
     if decrypt_result == 0:
         raise HTTPException(status_code=401, detail="Incorrect password. Cannot unlock PDF.")
         
@@ -387,5 +369,6 @@ def pdf_unlock(
         writer.write(f)
         
     return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+
 
 

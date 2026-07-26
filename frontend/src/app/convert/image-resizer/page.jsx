@@ -197,7 +197,7 @@ export default function ImageResizerPage() {
                 if (targetHeight) formData.append("height", targetHeight);
             }
 
-            const res = await fetch(`${API_BASE}/api/convert/image-resize`, {
+            const res = await fetch(`${API_BASE}/api/convert/image-resizer`, {
                 method: "POST",
                 body: formData,
             });

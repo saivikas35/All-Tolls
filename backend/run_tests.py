@@ -3,13 +3,14 @@ import requests, time, os, zipfile, sys
 from PIL import Image
 from reportlab.pdfgen import canvas
 
-BASE = "http://localhost:8000/api"
+BASE = "http://localhost:4000/api"
 TEST_DIR = "test_files"
 os.makedirs(TEST_DIR, exist_ok=True)
 
 results = []
 
-def run(name, url, files_dict=None, data=None, timeout=30):
+def run(name, url, files_dict=None, data=None, timeout=30, expected_status=200):
+    res = None
     try:
         t0 = time.time()
         opened = []
@@ -29,36 +30,45 @@ def run(name, url, files_dict=None, data=None, timeout=30):
         for fo in file_objs:
             fo.close()
 
-        if res.status_code == 200:
-            try:
-                j = res.json()
-                ok_keys = {"success", "downloadUrl", "status", "thumbnails", "text"}
-                if any(k in j for k in ok_keys):
-                    results.append(("OK", name, f"{t1-t0:.1f}s"))
-                    print(f"  [OK] {name}  ({t1-t0:.1f}s)")
-                else:
-                    results.append(("FAIL", name, f"JSON missing key: {list(j.keys())}"))
-                    print(f"  [FAIL] {name}  JSON={list(j.keys())}")
-            except Exception:
-                results.append(("OK", name, "binary"))
-                print(f"  [OK] {name}  (binary)")
+        if res.status_code == expected_status:
+            if expected_status == 200:
+                try:
+                    j = res.json()
+                    ok_keys = {"success", "downloadUrl", "status", "thumbnails", "text"}
+                    if any(k in j for k in ok_keys):
+                        results.append(("OK", name, f"{t1-t0:.1f}s"))
+                        print(f"  [OK] {name}  ({t1-t0:.1f}s)")
+                    else:
+                        results.append(("FAIL", name, f"JSON missing key: {list(j.keys())}"))
+                        print(f"  [FAIL] {name}  JSON={list(j.keys())}")
+                except Exception:
+                    results.append(("OK", name, "binary"))
+                    print(f"  [OK] {name}  (binary)")
+            else:
+                results.append(("OK", name, f"HTTP {res.status_code} (Expected)"))
+                print(f"  [OK] {name}  HTTP {res.status_code} (Expected)")
         else:
             try:
                 detail = res.json().get("detail", res.text[:100])
             except Exception:
                 detail = res.text[:100]
-            results.append(("FAIL", name, f"HTTP {res.status_code}: {detail}"))
-            print(f"  [FAIL] {name}  HTTP {res.status_code}: {detail}")
+            results.append(("FAIL", name, f"HTTP {res.status_code} (Expected {expected_status}): {detail}"))
+            print(f"  [FAIL] {name}  HTTP {res.status_code} (Expected {expected_status}): {detail}")
     except requests.exceptions.Timeout:
         results.append(("ERR", name, "TIMEOUT"))
         print(f"  [ERR] {name}  TIMEOUT")
     except Exception as e:
         results.append(("ERR", name, str(e)[:100]))
         print(f"  [ERR] {name}  {str(e)[:100]}")
+    return res
 
 # ---- Create test files ----
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib.pagesizes import letter
+
 pdf1 = os.path.join(TEST_DIR, "t1.pdf")
 pdf2 = os.path.join(TEST_DIR, "t2.pdf")
+pdf_table = os.path.join(TEST_DIR, "t_table.pdf")
 jpg  = os.path.join(TEST_DIR, "t.jpg")
 png  = os.path.join(TEST_DIR, "t.png")
 webp = os.path.join(TEST_DIR, "t.webp")
@@ -73,6 +83,12 @@ c.save()
 c = canvas.Canvas(pdf2)
 c.drawString(100, 750, "PDF 2")
 c.save()
+
+doc_t = SimpleDocTemplate(pdf_table, pagesize=letter)
+t_data = [['Col 1', 'Col 2'], ['Val 1', 'Val 2']]
+t = Table(t_data)
+t.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 1, 'black')]))
+doc_t.build([t])
 
 Image.new("RGB", (200, 200), "red").save(jpg)
 Image.new("RGB", (200, 200), "blue").save(png)

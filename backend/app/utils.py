@@ -37,3 +37,18 @@ def get_file_or_url(file: Optional[UploadFile], url: Optional[str], suffix: str 
             raise HTTPException(status_code=400, detail=f"Failed to download URL: {str(e)}")
     else:
         raise HTTPException(status_code=400, detail="Please provide a file or a valid URL.")
+
+def clean_param(val, default=None, cast_type=None):
+    """Unwrap FastAPI Form default objects or empty strings and safely cast types."""
+    from fastapi.params import Form
+    if isinstance(val, Form):
+        val = val.default
+    if val is None or (isinstance(val, str) and not val.strip()):
+        val = default
+    if cast_type is not None and val is not None:
+        try:
+            val = cast_type(val)
+        except (ValueError, TypeError):
+            val = default
+    return val
+

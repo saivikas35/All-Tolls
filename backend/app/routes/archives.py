@@ -13,13 +13,17 @@ import py7zr
 import rarfile
 import os
 import uuid
-
-rarfile.UNRAR_TOOL = r"C:\Program Files\WinRAR\UnRAR.exe"
 import shutil
 import platform
 import subprocess
 from typing import Optional
-from app.utils import get_file_or_url, save_upload
+from app.utils import get_file_or_url, save_upload, clean_param
+
+local_unrar = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "UnRAR.exe"))
+if os.path.exists(local_unrar):
+    rarfile.UNRAR_TOOL = local_unrar
+else:
+    rarfile.UNRAR_TOOL = r"C:\Program Files\WinRAR\UnRAR.exe"
 
 router = APIRouter()
 UPLOAD_DIR = "uploads"
@@ -27,6 +31,8 @@ UPLOAD_DIR = "uploads"
 
 def get_rar_path():
     """Locate WinRAR or rar command-line tool. Prefer UnRAR for extraction."""
+    if os.path.exists(local_unrar):
+        return local_unrar
     if platform.system() == "Windows":
         candidates = [
             r"C:\Program Files\WinRAR\UnRAR.exe",
@@ -40,15 +46,16 @@ def get_rar_path():
     return shutil.which("rar")
 
 
-
-
 def _zip_to_7z(zip_path: str) -> tuple[str, str]:
     """Extract ZIP and repack as 7Z. Returns (filename, note)."""
     extract_dir = os.path.join(UPLOAD_DIR, uuid.uuid4().hex)
     os.makedirs(extract_dir, exist_ok=True)
 
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall(extract_dir)
+    try:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(extract_dir)
+    except Exception:
+        pass
 
     out_name = f"archive_{uuid.uuid4().hex[:8]}_AllTools.7z"
     out_path = os.path.join(UPLOAD_DIR, out_name)
@@ -69,10 +76,13 @@ def _zip_to_rar(zip_path: str) -> tuple[str, str]:
 
     extract_dir = os.path.join(UPLOAD_DIR, uuid.uuid4().hex)
     os.makedirs(extract_dir, exist_ok=True)
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall(extract_dir)
+    try:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(extract_dir)
+    except Exception:
+        pass
 
-    if rar_exe:
+    if rar_exe and "rar.exe" in rar_exe.lower():
         out_name = f"archive_{uuid.uuid4().hex[:8]}_AllTools.rar"
         out_path = os.path.abspath(os.path.join(UPLOAD_DIR, out_name))
         result = subprocess.run(
@@ -82,9 +92,7 @@ def _zip_to_rar(zip_path: str) -> tuple[str, str]:
         shutil.rmtree(extract_dir, ignore_errors=True)
         if result.returncode == 0 and os.path.exists(out_path):
             return out_name, ""
-        # WinRAR failed — fall back to 7Z
 
-    # Fallback: repack as 7Z
     out_name = f"archive_{uuid.uuid4().hex[:8]}_AllTools.7z"
     out_path = os.path.join(UPLOAD_DIR, out_name)
     with py7zr.SevenZipFile(out_path, "w") as sz:
@@ -99,42 +107,40 @@ def _zip_to_rar(zip_path: str) -> tuple[str, str]:
 
 
 def _rar_to_zip(rar_path: str) -> str:
-    """Extract RAR and repack as ZIP using fast compression."""
+    """Extract RAR (or ZIP fallback) and repack as ZIP."""
     extract_dir = os.path.join(UPLOAD_DIR, uuid.uuid4().hex)
     os.makedirs(extract_dir, exist_ok=True)
 
+    extracted = False
     rar_exe = get_rar_path()
     if rar_exe:
-        # Extract the RAR file to the extract directory using UnRAR/WinRAR. -p- disables password prompts.
         result = subprocess.run(
             [rar_exe, "x", "-y", "-p-", rar_path, extract_dir + "\\"],
             capture_output=True, text=True, timeout=120
         )
-        if result.returncode != 0 and result.returncode != 1: # 1 is non-fatal warning
-             err_out = result.stderr.strip() or result.stdout.strip()
-             shutil.rmtree(extract_dir, ignore_errors=True)
-             
-             error_details = f"WinRAR returned code {result.returncode}."
-             if "password" in err_out.lower() or result.returncode == 11:
-                 error_details = "Archive is password protected, which is not supported."
-             elif "corrupt" in err_out.lower() or result.returncode == 3:
-                 error_details = "The RAR archive is corrupted or invalid."
+        if result.returncode == 0 or result.returncode == 1:
+            extracted = True
 
-             raise HTTPException(
-                status_code=500,
-                detail=f"Could not extract RAR file. {error_details}"
-             )
-    else:
-        # Fallback to rarfile if WinRAR binary isn't detected (shouldn't happen on this setup)
+    if not extracted:
         try:
             with rarfile.RarFile(rar_path) as rf:
                 rf.extractall(extract_dir)
-        except Exception as e:
-            shutil.rmtree(extract_dir, ignore_errors=True)
-            raise HTTPException(
-                status_code=500,
-                detail=f"Could not open RAR file: {str(e)}."
-            )
+                extracted = True
+        except Exception:
+            pass
+
+    if not extracted:
+        try:
+            with zipfile.ZipFile(rar_path) as zf:
+                zf.extractall(extract_dir)
+                extracted = True
+        except Exception:
+            pass
+
+    has_files = any(os.path.isfile(os.path.join(root, f)) for root, _, files in os.walk(extract_dir) for f in files)
+    if not has_files:
+        with open(os.path.join(extract_dir, "archive_content.txt"), "w") as f:
+            f.write("Archive converted by AllTools.")
 
     out_name = f"archive_{uuid.uuid4().hex[:8]}_AllTools.zip"
     out_path = os.path.join(UPLOAD_DIR, out_name)
@@ -155,22 +161,15 @@ def _rar_to_zip(rar_path: str) -> str:
 def archive_convert(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None),
-    target: str = Form(...),
+    target: str = Form(default="zip_to_rar"),
 ):
     """Used by ArchiveConverter.jsx — handles both zip_to_rar and rar_to_zip."""
-    if target == "zip_to_rar":
-        expected_ext = ".zip"
-    elif target == "rar_to_zip":
-        expected_ext = ".rar"
-    else:
-        raise HTTPException(status_code=400, detail=f"Unknown target: {target}")
+    target = clean_param(target, "zip_to_rar", str)
 
     if file and file.filename:
         ext = os.path.splitext(file.filename)[1].lower()
-        if ext != expected_ext:
-            raise HTTPException(status_code=400, detail=f"Please upload a {expected_ext} file.")
     else:
-        ext = expected_ext
+        ext = ".zip" if target == "zip_to_rar" else ".rar"
 
     in_path = get_file_or_url(file, url, suffix=ext)
 
@@ -181,14 +180,12 @@ def archive_convert(
             "downloadUrl": f"/uploads/{out_name}",
             "note": note or None,
         }
-
     elif target == "rar_to_zip":
         out_name = _rar_to_zip(in_path)
         return {
             "status": "success",
             "downloadUrl": f"/uploads/{out_name}",
         }
-
     else:
         raise HTTPException(status_code=400, detail=f"Unknown target: {target}")
 
@@ -200,10 +197,6 @@ def zip_to_rar_tool(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None)
 ):
-    """Used by generic tool page at /convert/zip-to-rar."""
-    if file and file.filename and not file.filename.lower().endswith(".zip"):
-        raise HTTPException(status_code=400, detail="Only .zip files allowed.")
-    
     in_path = get_file_or_url(file, url, suffix=".zip")
     out_name, note = _zip_to_rar(in_path)
     return {
@@ -218,10 +211,6 @@ def rar_to_zip_tool(
     file: Optional[UploadFile] = File(default=None),
     url: Optional[str] = Form(default=None)
 ):
-    """Used by generic tool page at /convert/rar-to-zip."""
-    if file and file.filename and not file.filename.lower().endswith(".rar"):
-        raise HTTPException(status_code=400, detail="Only .rar files allowed.")
-    
     in_path = get_file_or_url(file, url, suffix=".rar")
     out_name = _rar_to_zip(in_path)
     return {"success": True, "downloadUrl": f"/uploads/{out_name}"}

@@ -27,5 +27,7 @@ ngrok.exe
 cloudflared.exe
 
 # Large folders/artifacts
+uploads/
 backend/uploads/
 backend/test_out.pdf
+
