@@ -196,7 +196,8 @@ export default function ToolConvertPage() {
 
       const data = JSON.parse(text);
       setProgress(100);
-      setDownloadUrl(`${API_BASE}${data.downloadUrl}`.replace('/uploads/', '/api/download/'));
+      const relativeUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
+      setDownloadUrl(relativeUrl);
       if (data.note) setConversionNote(data.note);
 
       // Brief delay so the user sees 100% before it flips to 'ready'
@@ -505,8 +506,8 @@ export default function ToolConvertPage() {
             )}
             <a
               href={downloadUrl}
-              download
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-semibold"
+              download={downloadUrl.split('/').pop() || "converted_file"}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-semibold cursor-pointer shadow-md"
             >
               ⬇️ Download Converted File
             </a>

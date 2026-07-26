@@ -160,7 +160,8 @@ export default function PdfRemovePagesPage() {
             }
 
             const data = await res.json();
-            setDownloadUrl(`${API_BASE}${data.downloadUrl}`.replace('/uploads/', '/api/download/'));
+            const relativeUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
+            setDownloadUrl(relativeUrl);
             setStep("done");
         } catch (err) {
             setErrorMsg(err.message || "Failed to remove pages.");

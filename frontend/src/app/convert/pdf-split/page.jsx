@@ -214,7 +214,8 @@ export default function PdfSplitPage() {
 
             const data = JSON.parse(text);
             setProgress(100);
-            setDownloadUrl(`${API_BASE}${data.downloadUrl}`.replace('/uploads/', '/api/download/'));
+            const relativeUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
+            setDownloadUrl(relativeUrl);
 
             setTimeout(() => setStep("ready"), 400);
 

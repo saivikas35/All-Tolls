@@ -235,10 +235,9 @@ export default function ArchiveConverter() {
             )}
             {resp.downloadUrl && (
               <a
-                href={`${API_BASE}${resp.downloadUrl}`.replace('/uploads/', '/api/download/')}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold transition"
+                href={resp.downloadUrl.replace('/uploads/', '/api/download/')}
+                download={resp.downloadUrl.split('/').pop() || "archive"}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold transition cursor-pointer shadow-md"
               >
                 ⬇️ Download Converted Archive
               </a>
