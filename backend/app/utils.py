@@ -8,9 +8,20 @@ UPLOAD_DIR = "uploads"
 
 import shutil
 
+import re
+
+def sanitize_filename(filename: str) -> str:
+    name_without_ext = os.path.splitext(os.path.basename(filename))[0]
+    clean_name = re.sub(r'[^a-zA-Z0-9_\-]', '_', name_without_ext).strip('_')
+    return clean_name if clean_name else "file"
+
 def save_upload(file: UploadFile, suffix: str = ".pdf") -> str:
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}{suffix}")
+    ext = suffix if suffix else os.path.splitext(file.filename)[1]
+    if not ext:
+        ext = ".pdf"
+    clean_name = sanitize_filename(file.filename)
+    path = os.path.join(UPLOAD_DIR, f"{clean_name}_{uuid.uuid4().hex[:6]}{ext}")
     with open(path, "wb") as f:
         file.file.seek(0)
         shutil.copyfileobj(file.file, f)
@@ -18,14 +29,15 @@ def save_upload(file: UploadFile, suffix: str = ".pdf") -> str:
 
 def get_file_or_url(file: Optional[UploadFile], url: Optional[str], suffix: str = ".pdf") -> str:
     if file and file.filename:
-        if not file.filename.lower().endswith(suffix) and suffix != "":
-            # Special logic: if suffix is empty, accept any file. If it ends with suffix, accept.
-            # But let's simplify and just check extension if strict.
-            pass # We'll let specific endpoints validate if they want to be strict
         return save_upload(file, suffix)
     elif url and url.strip():
         os.makedirs(UPLOAD_DIR, exist_ok=True)
-        path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}{suffix}")
+        url_filename = url.strip().split("?")[0].split("/")[-1]
+        clean_name = sanitize_filename(url_filename) if url_filename else "downloaded_file"
+        ext = suffix if suffix else os.path.splitext(url_filename)[1]
+        if not ext:
+            ext = ".pdf"
+        path = os.path.join(UPLOAD_DIR, f"{clean_name}_{uuid.uuid4().hex[:6]}{ext}")
         try:
             r = requests.get(url.strip(), stream=True, timeout=15)
             r.raise_for_status()

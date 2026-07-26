@@ -63,12 +63,34 @@ from fastapi.responses import FileResponse
 
 @app.get("/api/download/{filename}")
 def download_file(filename: str):
-    """Force download instead of opening in browser"""
+    """Force download with proper MIME type and filename attachment header"""
     file_path = os.path.join("uploads", filename)
     if not os.path.exists(file_path):
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(path=file_path, filename=filename, media_type="application/octet-stream")
+
+    ext = os.path.splitext(filename)[1].lower()
+    media_types = {
+        ".pdf": "application/pdf",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".zip": "application/zip",
+        ".rar": "application/vnd.rar",
+        ".7z": "application/x-7z-compressed"
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 @app.get("/")
 def root():
