@@ -30,7 +30,7 @@ export default function FeedbackPage() {
         setErrorMessage("");
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+            const apiUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
             const res = await fetch(`${apiUrl}/api/feedback`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

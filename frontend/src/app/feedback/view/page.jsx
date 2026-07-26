@@ -14,7 +14,7 @@ export default function ViewFeedbackPage() {
 
     const fetchFeedbacks = async () => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+            const apiUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
             const res = await fetch(`${apiUrl}/api/feedback`);
             if (!res.ok) throw new Error("Failed to load feedbacks");
 

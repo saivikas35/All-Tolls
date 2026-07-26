@@ -7,9 +7,9 @@ import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 
-let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
 if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    API_BASE = "http://localhost:8000";
+    API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
 }
 
 export default function PDFToExcelPage() {
@@ -132,8 +132,15 @@ export default function PDFToExcelPage() {
             });
 
             clearInterval(progressInterval);
-            const text = await res.text();
-            if (!res.ok) throw new Error(JSON.parse(text).detail || "Failed to convert PDF.");
+            if (!res.ok) {
+                let detail = "Failed to convert PDF.";
+                try {
+                    const parsed = JSON.parse(text);
+                    detail = parsed.detail || detail;
+                    if (typeof detail === "object") detail = JSON.stringify(detail);
+                } catch { }
+                throw new Error(detail);
+            }
 
             const data = JSON.parse(text);
             setProgress(100);

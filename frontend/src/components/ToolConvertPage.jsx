@@ -186,7 +186,11 @@ export default function ToolConvertPage() {
       const text = await res.text();
       if (!res.ok) {
         let detail = "Conversion failed.";
-        try { detail = JSON.parse(text).detail || detail; } catch { }
+        try {
+          const parsed = JSON.parse(text);
+          detail = parsed.detail || detail;
+          if (typeof detail === "object") detail = JSON.stringify(detail);
+        } catch { }
         throw new Error(detail);
       }
 

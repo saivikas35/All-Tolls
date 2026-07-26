@@ -183,9 +183,9 @@ export default function ATSScorePage() {
     const [isExtracting, setIsExtracting] = useState(false);
     const fileRef = useRef(null);
 
-    let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+    let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        API_BASE = "http://localhost:8000";
+        API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
     }
 
     async function handleFileRead(e) {

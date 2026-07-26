@@ -35,30 +35,19 @@ def get_soffice_path():
     return "soffice"
 
 
+from typing import Optional
+from fastapi import Form
+from app.utils import get_file_or_url
+
 @router.post("/pdf-to-word")
-async def pdf_to_word(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files allowed")
-
+def pdf_to_word(
+    file: Optional[UploadFile] = File(default=None),
+    url: Optional[str] = Form(default=None)
+):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-    # ---------- Filename handling ----------
-    original_name = os.path.splitext(file.filename)[0]
-    safe_name = original_name.replace(" ", "_") + "_AllTools"
-
-    input_pdf = os.path.join(
-        UPLOAD_DIR,
-        f"{uuid.uuid4()}_{safe_name}.pdf"
-    )
-
-    output_docx = os.path.join(
-        UPLOAD_DIR,
-        f"{safe_name}_AllTools.docx"
-    )
-
-    # ---------- Save uploaded file ----------
-    with open(input_pdf, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    input_pdf = get_file_or_url(file, url, suffix=".pdf")
+    base_name = os.path.splitext(os.path.basename(input_pdf))[0]
+    output_docx = os.path.join(UPLOAD_DIR, f"{base_name}_AllTools.docx")
 
     # ========== PDF2DOCX APPROACH (No LibreOffice Required) ==========
     print("[DEBUG] === PDF Conversion Starting ===")
