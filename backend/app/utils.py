@@ -64,3 +64,24 @@ def clean_param(val, default=None, cast_type=None):
             val = default
     return val
 
+import time
+
+def cleanup_old_uploads(max_age_hours: float = 1.0) -> int:
+    """Clean up files in UPLOAD_DIR older than max_age_hours. Returns count of removed files."""
+    if not os.path.exists(UPLOAD_DIR):
+        return 0
+    now = time.time()
+    max_age_sec = max_age_hours * 3600
+    removed_count = 0
+    for filename in os.listdir(UPLOAD_DIR):
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        if os.path.isfile(file_path):
+            try:
+                file_age = now - os.path.getmtime(file_path)
+                if file_age > max_age_sec:
+                    os.remove(file_path)
+                    removed_count += 1
+            except Exception:
+                pass
+    return removed_count
+

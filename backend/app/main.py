@@ -33,6 +33,14 @@ app.add_middleware(
 # Ensure uploads folder exists
 os.makedirs("uploads", exist_ok=True)
 
+from app.utils import cleanup_old_uploads
+
+@app.on_event("startup")
+def startup_cleanup():
+    removed = cleanup_old_uploads(max_age_hours=1.0)
+    if removed > 0:
+        print(f"[AllTools Startup] Cleaned up {removed} stale uploaded file(s).")
+
 # Static file serving (so /uploads/<file> works)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 

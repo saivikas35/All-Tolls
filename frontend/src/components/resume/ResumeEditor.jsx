@@ -172,13 +172,59 @@ export default function ResumeEditor({ template, data: initialData, setData: par
       <div className="col-span-12 lg:col-span-5 xl:col-span-6 h-full overflow-y-auto bg-gray-100 p-8 rounded-xl shadow-inner border border-gray-200 flex flex-col items-center">
         <div className="w-full flex justify-between items-center mb-4 px-4 max-w-[210mm]">
           <div className="text-sm text-gray-500 font-medium">Live Preview</div>
-          <button
-            onClick={downloadPDF}
-            disabled={!html2pdf}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            <span>Download PDF</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `resume_backup_${data.header?.name?.replace(/\s+/g, '_') || 'data'}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg font-medium text-xs shadow-sm transition-colors flex items-center gap-1"
+              title="Export JSON Backup"
+            >
+              <span>💾 Export</span>
+            </button>
+            <label
+              className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg font-medium text-xs shadow-sm transition-colors cursor-pointer flex items-center gap-1"
+              title="Import JSON Backup"
+            >
+              <span>📂 Import</span>
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    try {
+                      const parsed = JSON.parse(event.target.result);
+                      if (parsed && typeof parsed === "object") {
+                        setData(parsed);
+                        alert("Resume backup restored successfully!");
+                      }
+                    } catch (err) {
+                      alert("Invalid JSON backup file.");
+                    }
+                  };
+                  reader.readAsText(file);
+                }}
+              />
+            </label>
+            <button
+              onClick={downloadPDF}
+              disabled={!html2pdf}
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              <span>Download PDF</span>
+            </button>
+          </div>
         </div>
 
         <div
