@@ -34,6 +34,11 @@ export default function ToolConvertPage() {
   const [dropboxReady, setDropboxReady] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const [watermarkText, setWatermarkText] = useState("CONFIDENTIAL");
+  const [watermarkOpacity, setWatermarkOpacity] = useState(0.3);
+  const [pageNumPosition, setPageNumPosition] = useState("bottom-center");
+  const [pageNumStyle, setPageNumStyle] = useState("Page {page} of {total}");
+
   const fileInputRef = useRef(null);
 
   /* ---------- Google Picker load ---------- */
@@ -175,6 +180,16 @@ export default function ToolConvertPage() {
       if (toolId === "image-compress") {
         if (pageInput.trim()) formData.append("format", pageInput.trim());
         formData.append("quality", compressionQuality.toString());
+      }
+
+      if (toolId === "pdf-watermark") {
+        formData.append("text", watermarkText);
+        formData.append("opacity", watermarkOpacity.toString());
+      }
+
+      if (toolId === "pdf-page-numbers") {
+        formData.append("position", pageNumPosition);
+        formData.append("style", pageNumStyle);
       }
 
       const res = await fetch(`${API_BASE}/api/convert/${toolId}`, {
@@ -456,6 +471,78 @@ export default function ToolConvertPage() {
                   <span>Balanced</span>
                   <span>Large File (Best Quality)</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PDF Watermark Options ── */}
+        {toolId === "pdf-watermark" && (
+          <div className="mt-6 p-5 border border-purple-200 bg-purple-50/50 rounded-2xl">
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span>💧</span> Watermark Configuration
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Watermark Text</label>
+                <input
+                  type="text"
+                  value={watermarkText}
+                  onChange={(e) => setWatermarkText(e.target.value)}
+                  placeholder="CONFIDENTIAL"
+                  className="w-full border rounded-xl px-3 py-2 text-sm bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-medium text-gray-600">Opacity</label>
+                  <span className="text-xs font-bold text-purple-600">{Math.round(watermarkOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1.0"
+                  step="0.05"
+                  value={watermarkOpacity}
+                  onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
+                  className="w-full accent-purple-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PDF Page Numbers Options ── */}
+        {toolId === "pdf-page-numbers" && (
+          <div className="mt-6 p-5 border border-blue-200 bg-blue-50/50 rounded-2xl">
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span>🔢</span> Page Numbers Configuration
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Number Position</label>
+                <select
+                  value={pageNumPosition}
+                  onChange={(e) => setPageNumPosition(e.target.value)}
+                  className="w-full border rounded-xl px-3 py-2 text-sm bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="bottom-center">Bottom Center</option>
+                  <option value="bottom-right">Bottom Right</option>
+                  <option value="top-right">Top Right</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Format Style</label>
+                <select
+                  value={pageNumStyle}
+                  onChange={(e) => setPageNumStyle(e.target.value)}
+                  className="w-full border rounded-xl px-3 py-2 text-sm bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="Page {page} of {total}">Page X of Y</option>
+                  <option value="{page} / {total}">X / Y</option>
+                  <option value="Page {page}">Page X</option>
+                  <option value="{page}">X (Number only)</option>
+                </select>
               </div>
             </div>
           </div>

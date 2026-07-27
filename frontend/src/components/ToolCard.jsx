@@ -76,51 +76,43 @@ export default function ToolCard({ tool }) {
 
   return (
     <div
-      className="tool-card toolcard-hover"
+      className="tool-card group transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl cursor-pointer rounded-2xl p-4 bg-white border border-gray-100/80 shadow-sm flex flex-col justify-between h-[165px] relative overflow-hidden"
       role="article"
       aria-label={tool.title}
       onClick={() => { if (tool.path) router.push(tool.path); else router.push(`/tools/${tool.id}`); }}
-      style={{
-        cursor: "pointer",
-        borderRadius: 12,
-        padding: 18,
-        background: "white",
-        border: "1px solid rgba(8,20,40,0.04)",
-        boxShadow: "0 6px 18px rgba(2,6,23,0.04)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        height: "160px"
-      }}
     >
+      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-indigo-50/40 to-purple-50/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <div
-          className="tool-badge"
+          className="tool-badge transition-transform duration-300 group-hover:scale-105"
           aria-hidden
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: 12,
+            width: 52,
+            height: 52,
+            borderRadius: 14,
             display: "grid",
             placeItems: "center",
-            flex: "0 0 56px",
+            flex: "0 0 52px",
             background: tool.badgeColor || "rgba(0,0,0,0.04)"
           }}
         >
-          <div style={{ width: 32, height: 32 }}>
-            <IconOrInitials remote={tool.icon} local={tool.iconLocal} title={tool.title} size={32} />
+          <div style={{ width: 30, height: 30 }}>
+            <IconOrInitials remote={tool.icon} local={tool.iconLocal} title={tool.title} size={30} />
           </div>
         </div>
 
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{tool.title}</div>
-          <div style={{ color: "#6b7280", fontSize: 13 }}>{tool.category}</div>
+          <div className="font-bold text-gray-900 text-base group-hover:text-indigo-600 transition-colors">{tool.title}</div>
+          <div className="text-gray-400 text-xs font-medium mt-0.5">{tool.category}</div>
         </div>
       </div>
 
-      <div style={{ marginTop: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ color: "#6b7280", fontSize: 13 }}>{(tool.keywords || []).slice(0, 4).join(", ")}</div>
-        <div style={{ color: "#7c3aed", fontWeight: 700 }}>Open →</div>
+      <div className="mt-3 flex items-center justify-between pt-3 border-t border-gray-50">
+        <div className="text-gray-400 text-xs truncate max-w-[70%] font-normal">{(tool.keywords || []).slice(0, 3).join(", ")}</div>
+        <div className="text-indigo-600 font-semibold text-xs flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          <span>Open</span>
+          <span>→</span>
+        </div>
       </div>
     </div>
   );

@@ -33,6 +33,26 @@ const tools = [
     keywords: ["remove", "delete pages", "trim"]
   },
   {
+    id: "pdf-watermark",
+    title: "Watermark PDF",
+    category: "Organize PDF",
+    path: "/convert/pdf-watermark",
+    icon: "https://unpkg.com/@tabler/icons@3.x/icons/outline/droplet.svg",
+    iconLocal: "https://unpkg.com/@tabler/icons@3.x/icons/outline/droplet.svg",
+    badgeColor: "#F5F3FF",
+    keywords: ["watermark", "stamp", "text", "draft", "confidential"]
+  },
+  {
+    id: "pdf-page-numbers",
+    title: "Page Numbers",
+    category: "Organize PDF",
+    path: "/convert/pdf-page-numbers",
+    icon: "https://unpkg.com/@tabler/icons@3.x/icons/outline/list-numbers.svg",
+    iconLocal: "https://unpkg.com/@tabler/icons@3.x/icons/outline/list-numbers.svg",
+    badgeColor: "#EFF6FF",
+    keywords: ["page numbers", "numbering", "footer", "header", "pages"]
+  },
+  {
     id: "pdf-compress",
     title: "Compress PDF",
     category: "Optimize PDF",

@@ -371,4 +371,86 @@ def pdf_unlock(
     return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
 
 
+# ─── PDF WATERMARK ───────────────────────────────────────────────────────────
+
+@router.post("/pdf-watermark")
+def pdf_watermark(
+    file: Optional[UploadFile] = File(default=None),
+    url: Optional[str] = Form(default=None),
+    text: str = Form(default="CONFIDENTIAL"),
+    fontsize: float = Form(default=40.0),
+    opacity: float = Form(default=0.3),
+    rotation: int = Form(default=45)
+):
+    text = clean_param(text, "CONFIDENTIAL", str)
+    fontsize = clean_param(fontsize, 40.0, float)
+    opacity = clean_param(opacity, 0.3, float)
+    rotation = clean_param(rotation, 45, int)
+
+    in_path = get_file_or_url(file, url, suffix=".pdf")
+    doc = fitz.open(in_path)
+
+    for page in doc:
+        rect = page.rect
+        point = fitz.Point(rect.width / 4, rect.height / 2)
+        page.insert_text(
+            point,
+            text,
+            fontsize=fontsize,
+            color=(0.5, 0.5, 0.5),
+            rotate=0,
+            fill_opacity=opacity
+        )
+
+    out_name = f"watermarked_{uuid.uuid4().hex[:8]}_AllTools.pdf"
+    out_path = os.path.join(UPLOAD_DIR, out_name)
+    doc.save(out_path)
+    doc.close()
+
+    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+
+
+# ─── PDF PAGE NUMBERS ────────────────────────────────────────────────────────
+
+@router.post("/pdf-page-numbers")
+def pdf_page_numbers(
+    file: Optional[UploadFile] = File(default=None),
+    url: Optional[str] = Form(default=None),
+    position: str = Form(default="bottom-center"),
+    style: str = Form(default="Page {page} of {total}")
+):
+    position = clean_param(position, "bottom-center", str)
+    style = clean_param(style, "Page {page} of {total}", str)
+
+    in_path = get_file_or_url(file, url, suffix=".pdf")
+    doc = fitz.open(in_path)
+    total_pages = len(doc)
+
+    for idx, page in enumerate(doc):
+        rect = page.rect
+        page_num_str = style.replace("{page}", str(idx + 1)).replace("{total}", str(total_pages))
+        
+        if position == "bottom-right":
+            point = fitz.Point(rect.width - 140, rect.height - 25)
+        elif position == "top-right":
+            point = fitz.Point(rect.width - 140, 35)
+        else:  # bottom-center
+            point = fitz.Point(rect.width / 2 - 40, rect.height - 25)
+
+        page.insert_text(
+            point,
+            page_num_str,
+            fontsize=11,
+            color=(0.2, 0.2, 0.2)
+        )
+
+    out_name = f"pagenums_{uuid.uuid4().hex[:8]}_AllTools.pdf"
+    out_path = os.path.join(UPLOAD_DIR, out_name)
+    doc.save(out_path)
+    doc.close()
+
+    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+
+
+
 

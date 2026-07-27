@@ -338,6 +338,17 @@ except urllib.error.HTTPError as e:
 except Exception as ex:
     log("Feedback", "FAIL", str(ex)[:200])
 
+# 25. PDF Watermark
+code, resp = post_file("/api/convert/pdf-watermark", "file", "test.pdf", MINIMAL_PDF, "application/pdf",
+                       extra_fields={"text": "SAMPLE WATERMARK", "opacity": "0.4"})
+check_success("PDF Watermark", code, resp)
+
+# 26. PDF Page Numbers
+code, resp = post_file("/api/convert/pdf-page-numbers", "file", "test.pdf", MINIMAL_PDF, "application/pdf",
+                       extra_fields={"position": "bottom-center", "style": "Page {page} of {total}"})
+check_success("PDF Page Numbers", code, resp)
+
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 print()
 print("=" * 60)
