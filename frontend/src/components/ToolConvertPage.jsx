@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker";
+import { downloadFile } from "@/lib/downloadFile";
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
@@ -28,6 +29,7 @@ export default function ToolConvertPage() {
   const [pageInput, setPageInput] = useState("");
   const [status, setStatus] = useState("idle");
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [downloadFilename, setDownloadFilename] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [conversionNote, setConversionNote] = useState("");
   const [compressionQuality, setCompressionQuality] = useState(75);
@@ -65,6 +67,7 @@ export default function ToolConvertPage() {
     setSourceUrl("");
     setStatus("idle");
     setDownloadUrl("");
+    setDownloadFilename("");
     setErrorMsg("");
     setPageInput("");
     setConversionNote("");
@@ -211,8 +214,30 @@ export default function ToolConvertPage() {
 
       const data = JSON.parse(text);
       setProgress(100);
-      const relativeUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
-      setDownloadUrl(relativeUrl);
+
+      // Build download URL: always route through Next.js proxy (/uploads/<file>)
+      // which rewrites to FastAPI /api/download/<file> with proper Content-Disposition.
+      // This keeps the request same-origin so blob download always works.
+      let rawUrl = data.downloadUrl || "";
+      // Strip any absolute base if present (should be relative already)
+      rawUrl = rawUrl.replace(/^https?:\/\/[^/]+/, "");
+      // Normalise: /api/download/X  →  /uploads/X  (proxy handles it either way,
+      // but /uploads/ is the canonical same-origin path we configured)
+      const proxyUrl = rawUrl.startsWith("/uploads/") ? rawUrl
+        : rawUrl.replace("/api/download/", "/uploads/");
+
+      // Derive a human-readable filename from the server path
+      const serverFilename = proxyUrl.split("/").pop() || "download";
+      // Extract extension
+      const ext = serverFilename.includes(".") ? "." + serverFilename.split(".").pop() : "";
+      // Build friendly name: prefer original uploaded file name, fall back to toolId
+      const baseInputName = files[0]
+        ? files[0].name.replace(/\.[^/.]+$/, "") // strip extension from original
+        : toolId;
+      const friendlyFilename = `${baseInputName}_AllTools${ext}`;
+
+      setDownloadUrl(proxyUrl);
+      setDownloadFilename(friendlyFilename);
       if (data.note) setConversionNote(data.note);
 
       // Brief delay so the user sees 100% before it flips to 'ready'
@@ -591,13 +616,16 @@ export default function ToolConvertPage() {
                 ℹ️ {conversionNote}
               </div>
             )}
-            <a
-              href={downloadUrl}
-              download={downloadUrl.split('/').pop() || "converted_file"}
+            {/* Use blob download so the filename is always respected (plain <a download> is
+                ignored by browsers for cross-origin URLs). downloadFile() fetches the file,
+                creates a same-origin Blob URL, and triggers the save dialog with the
+                correct original filename. */}
+            <button
+              onClick={() => downloadFile(downloadUrl, downloadFilename)}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-semibold cursor-pointer shadow-md"
             >
               ⬇️ Download Converted File
-            </a>
+            </button>
           </div>
         )}
 

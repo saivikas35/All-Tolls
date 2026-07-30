@@ -259,7 +259,7 @@ export default function PDFToExcelPage() {
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Tables Extracted!</h2>
                         <p className="text-gray-500 text-center mb-8">Your Excel file has been populated with formatted tables.</p>
 
-                        <a href={downloadUrl} download className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
+                        <a href={downloadUrl} download="AllTools_Extracted.xlsx" className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
                             Download Excel File (.xlsx)
                         </a>
 

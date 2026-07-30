@@ -9,7 +9,8 @@ import os
 import uuid
 import shutil
 import platform
-from typing import Optional
+import copy
+from typing import Optional, List
 from app.utils import get_file_or_url, save_upload
 
 router = APIRouter()
@@ -161,3 +162,160 @@ def excel_to_pdf(
         _prepare_excel_for_pdf(in_path)
     out_name = _convert_to_pdf_via_libreoffice(in_path)
     return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+
+
+# ─── WORD → PDF PREVIEW (for page-selector thumbnail generation) ──────────────
+
+@router.post("/word-to-pdf-preview")
+def word_to_pdf_preview(
+    file: Optional[UploadFile] = File(default=None),
+    url: Optional[str] = Form(default=None)
+):
+    """Convert Word doc to PDF and return the PDF token so the frontend can
+    call /api/convert/pdf-split/preview to render page thumbnails."""
+    allowed = (".docx", ".doc", ".odt", ".rtf")
+    if file and file.filename:
+        if not any(file.filename.lower().endswith(ext) for ext in allowed):
+            raise HTTPException(status_code=400, detail="Supported formats: .docx, .doc, .odt, .rtf")
+        ext = os.path.splitext(file.filename)[1].lower()
+    else:
+        ext = ".docx"
+
+    in_path = get_file_or_url(file, url, suffix=ext)
+    # Save original docx path for later removal
+    docx_path = in_path
+    pdf_name = _convert_to_pdf_via_libreoffice(in_path)
+    return {
+        "success": True,
+        "pdfToken": pdf_name,
+        "docxToken": os.path.basename(docx_path),
+    }
+
+
+# ─── WORD REMOVE PAGES ────────────────────────────────────────────────────────
+
+def _split_docx_into_pages(doc):
+    """Split a python-docx Document into page-groups by explicit page breaks.
+    Returns a list of lists of paragraphs (each inner list = one 'page')."""
+    from docx.enum.text import WD_BREAK
+    pages = []
+    current_page = []
+
+    for para in doc.paragraphs:
+        current_page.append(para)
+        # Check runs for page-break
+        has_page_break = False
+        for run in para.runs:
+            if run.contains_page_break:
+                has_page_break = True
+                break
+            # Also check XML directly
+            for br in run._r.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}br'):
+                btype = br.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type', '')
+                if btype == 'page':
+                    has_page_break = True
+                    break
+
+        if has_page_break:
+            pages.append(current_page)
+            current_page = []
+
+    if current_page:
+        pages.append(current_page)
+
+    return pages
+
+
+@router.post("/word-remove-pages")
+def word_remove_pages(
+    file: Optional[UploadFile] = File(default=None),
+    url: Optional[str] = Form(default=None),
+    docx_token: Optional[str] = Form(default=None),
+    pages: str = Form(default=""),
+    output_format: str = Form(default="docx"),
+):
+    """Remove selected pages from a Word document.
+    
+    - pages: comma-separated 1-indexed page numbers to REMOVE
+    - output_format: 'docx' or 'pdf'
+    - docx_token: optional cached .docx filename from word-to-pdf-preview step
+    """
+    import re
+    from docx import Document
+    from docx.shared import Pt
+    from docx.oxml.ns import qn
+    from lxml import etree
+
+    pages = (pages or "").strip()
+    output_format = (output_format or "docx").strip().lower()
+
+    if not pages:
+        raise HTTPException(status_code=400, detail="Please specify pages to remove.")
+
+    # Resolve input path
+    if docx_token:
+        in_path = os.path.join(UPLOAD_DIR, os.path.basename(docx_token))
+        if not os.path.exists(in_path):
+            raise HTTPException(status_code=400, detail="Session expired. Please re-upload your file.")
+    else:
+        ext = ".docx"
+        if file and file.filename:
+            if not any(file.filename.lower().endswith(e) for e in (".docx", ".doc", ".odt", ".rtf")):
+                raise HTTPException(status_code=400, detail="Supported formats: .docx, .doc, .odt, .rtf")
+            ext = os.path.splitext(file.filename)[1].lower()
+        in_path = get_file_or_url(file, url, suffix=ext)
+
+    # Parse page numbers to remove (1-indexed)
+    remove_nums = set()
+    for part in pages.split(","):
+        part = part.strip()
+        if "-" in part:
+            a, b = part.split("-", 1)
+            for n in range(int(a), int(b) + 1):
+                remove_nums.add(n)
+        elif part.isdigit():
+            remove_nums.add(int(part))
+
+    # Load the document
+    doc = Document(in_path)
+    page_groups = _split_docx_into_pages(doc)
+    total_pages = len(page_groups)
+
+    if not remove_nums - {0}:
+        raise HTTPException(status_code=400, detail="No valid pages specified.")
+    if len(remove_nums) >= total_pages:
+        raise HTTPException(status_code=400, detail="Cannot remove all pages from the document.")
+
+    # Build list of paragraphs to KEEP (pages not in remove set)
+    kept_paras = []
+    for page_idx, para_list in enumerate(page_groups):
+        page_num = page_idx + 1  # 1-indexed
+        if page_num not in remove_nums:
+            kept_paras.extend(para_list)
+
+    # Build a new document with only the kept paragraphs
+    new_doc = Document()
+    # Remove default empty paragraph
+    for p in new_doc.paragraphs:
+        p._element.getparent().remove(p._element)
+
+    for para in kept_paras:
+        # Deep-copy the paragraph XML into the new document body
+        new_para = copy.deepcopy(para._element)
+        new_doc.element.body.append(new_para)
+
+    # Copy styles from original
+    try:
+        new_doc.styles = doc.styles
+    except Exception:
+        pass
+
+    out_docx_name = f"removed_{uuid.uuid4().hex[:8]}_AllTools.docx"
+    out_docx_path = os.path.join(UPLOAD_DIR, out_docx_name)
+    new_doc.save(out_docx_path)
+
+    if output_format == "pdf":
+        out_pdf_name = _convert_to_pdf_via_libreoffice(out_docx_path)
+        return {"success": True, "downloadUrl": f"/uploads/{out_pdf_name}", "format": "pdf"}
+
+    return {"success": True, "downloadUrl": f"/uploads/{out_docx_name}", "format": "docx"}

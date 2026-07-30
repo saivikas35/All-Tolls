@@ -325,7 +325,7 @@ export default function PdfPasswordPage() {
                                     : 'Password removed. You can now open this PDF freely.'}
                             </p>
 
-                            <a href={downloadUrl} download className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
+                            <a href={downloadUrl} download={mode === 'protect' ? 'AllTools_Protected.pdf' : 'AllTools_Unlocked.pdf'} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
                                 Download PDF
                             </a>
 

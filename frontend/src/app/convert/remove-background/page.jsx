@@ -308,7 +308,7 @@ export default function RemoveBackgroundPage() {
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Background Removed!</h2>
                         <p className="text-gray-500 text-center mb-8">Your image has been processed using U2Net AI.</p>
 
-                        <a href={downloadUrl} download className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
+                        <a href={downloadUrl} download="AllTools_No_Background.png" className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
                             Download Image
                         </a>
 
