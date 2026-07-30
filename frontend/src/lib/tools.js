@@ -24,13 +24,23 @@ const tools = [
   },
   {
     id: "pdf-remove-pages",
-    title: "Remove Pages",
+    title: "Remove PDF Pages",
     category: "Organize PDF",
     path: "/convert/pdf-remove-pages",
     icon: "https://unpkg.com/@tabler/icons@3.x/icons/outline/trash.svg",
     iconLocal: "https://unpkg.com/@tabler/icons@3.x/icons/outline/trash.svg",
     badgeColor: "#FFF0F8",
     keywords: ["remove", "delete pages", "trim"]
+  },
+  {
+    id: "pdf-unlock",
+    title: "Unlock PDF",
+    category: "Organize PDF",
+    path: "/convert/pdf-unlock",
+    icon: "https://unpkg.com/@tabler/icons@3.x/icons/outline/lock-open.svg",
+    iconLocal: "https://unpkg.com/@tabler/icons@3.x/icons/outline/lock-open.svg",
+    badgeColor: "#F0FFF4",
+    keywords: ["unlock", "decrypt", "remove password", "unprotect", "open pdf"]
   },
   {
     id: "pdf-watermark",
@@ -171,6 +181,16 @@ const tools = [
     iconLocal: "https://unpkg.com/@tabler/icons@3.x/icons/outline/lock.svg",
     badgeColor: "#FFF0F0",
     keywords: ["password", "protect", "encrypt", "unlock", "decrypt", "secure"]
+  },
+  {
+    id: "word-remove-pages",
+    title: "Remove Word Pages",
+    category: "Organize PDF",
+    path: "/convert/word-remove-pages",
+    icon: "https://unpkg.com/@tabler/icons@3.x/icons/outline/file-minus.svg",
+    iconLocal: "https://unpkg.com/@tabler/icons@3.x/icons/outline/file-minus.svg",
+    badgeColor: "#EFF6FF",
+    keywords: ["word", "docx", "remove pages", "delete pages", "word document"]
   },
   {
     id: "pdf-to-excel",

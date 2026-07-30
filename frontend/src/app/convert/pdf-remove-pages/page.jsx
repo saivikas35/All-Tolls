@@ -27,8 +27,11 @@ export default function PdfRemovePagesPage() {
 
     // Result
     const [downloadUrl, setDownloadUrl] = useState("");
+    const [downloadWordUrl, setDownloadWordUrl] = useState("");
+    const [convertingWord, setConvertingWord] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [loadingThumbs, setLoadingThumbs] = useState(false);
+    const [resultPdfName, setResultPdfName] = useState("");
 
     /* ---------- Google Picker ---------- */
     useEffect(() => {
@@ -162,6 +165,10 @@ export default function PdfRemovePagesPage() {
             const data = await res.json();
             const relativeUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
             setDownloadUrl(relativeUrl);
+            // Extract the filename for Word conversion
+            const pdfFilename = data.downloadUrl.split('/').pop();
+            setResultPdfName(pdfFilename);
+            setDownloadWordUrl("");
             setStep("done");
         } catch (err) {
             setErrorMsg(err.message || "Failed to remove pages.");
@@ -169,9 +176,32 @@ export default function PdfRemovePagesPage() {
         }
     }
 
+    async function handleDownloadWord() {
+        if (downloadWordUrl) {
+            window.open(`${API_BASE}${downloadWordUrl}`, "_blank");
+            return;
+        }
+        setConvertingWord(true);
+        try {
+            const form = new FormData();
+            // Re-use the result PDF file by passing its URL
+            form.append("url", `${API_BASE}/uploads/${resultPdfName}`);
+            const res = await fetch(`${API_BASE}/api/convert/pdf-to-word`, { method: "POST", body: form });
+            if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Word conversion failed."); }
+            const data = await res.json();
+            const wordUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
+            setDownloadWordUrl(wordUrl);
+            window.open(`${API_BASE}${wordUrl}`, "_blank");
+        } catch (err) {
+            setErrorMsg(err.message || "Failed to convert to Word.");
+        } finally {
+            setConvertingWord(false);
+        }
+    }
+
     function handleReset() {
         setFile(null); setSourceUrl(""); setThumbnails([]); setSelected(new Set());
-        setStep("upload"); setDownloadUrl(""); setErrorMsg(""); setPdfToken("");
+        setStep("upload"); setDownloadUrl(""); setDownloadWordUrl(""); setErrorMsg(""); setPdfToken(""); setResultPdfName("");
     }
 
     const UPLOAD_TABS = [
@@ -409,18 +439,53 @@ export default function PdfRemovePagesPage() {
 
             {/* ─────────── Done ─────────── */}
             {step === "done" && (
-                <div className="bg-white rounded-2xl border-2 border-green-200 p-10 flex flex-col items-center gap-5">
-                    <div className="text-5xl">✅</div>
+                <div className="bg-white rounded-2xl border-2 border-green-100 p-10 flex flex-col items-center gap-5">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                        <span className="text-white text-2xl">✓</span>
+                    </div>
                     <h2 className="text-xl font-bold text-green-700">Pages removed successfully!</h2>
-                    <p className="text-sm text-gray-500">Your PDF with <strong>{pageCount - selected.size}</strong> remaining pages is ready.</p>
-                    <a
-                        href={downloadUrl}
-                        download
-                        className="px-8 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition shadow flex items-center gap-2"
-                    >
-                        ⬇️ Download PDF
-                    </a>
-                    <button onClick={handleReset} className="text-sm text-gray-500 hover:underline">
+                    <p className="text-sm text-gray-500">Your document with <strong>{pageCount - selected.size}</strong> remaining page{pageCount - selected.size !== 1 ? 's' : ''} is ready. Choose your download format:</p>
+
+                    {/* Format download buttons */}
+                    <div className="w-full grid grid-cols-2 gap-3 mt-2">
+                        {/* PDF Download */}
+                        <a
+                            href={`${API_BASE}${downloadUrl}`}
+                            download
+                            className="flex flex-col items-center gap-2 py-5 px-4 bg-gradient-to-br from-red-500 to-orange-500 text-white rounded-2xl font-bold hover:opacity-90 transition shadow-md group"
+                        >
+                            <span className="text-3xl group-hover:scale-110 transition-transform">📄</span>
+                            <span className="text-base">Download as PDF</span>
+                            <span className="text-xs opacity-75">Compressed & print-ready</span>
+                        </a>
+
+                        {/* Word Download */}
+                        <button
+                            onClick={handleDownloadWord}
+                            disabled={convertingWord}
+                            className="flex flex-col items-center gap-2 py-5 px-4 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:opacity-90 transition shadow-md disabled:opacity-60 group"
+                        >
+                            {convertingWord ? (
+                                <>
+                                    <svg className="animate-spin h-8 w-8" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                    </svg>
+                                    <span className="text-base">Converting…</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-3xl group-hover:scale-110 transition-transform">📝</span>
+                                    <span className="text-base">Download as Word</span>
+                                    <span className="text-xs opacity-75">.docx — editable document</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}
+
+                    <button onClick={handleReset} className="text-sm text-gray-400 hover:text-gray-600 hover:underline mt-2">
                         Start over with another PDF
                     </button>
                 </div>
