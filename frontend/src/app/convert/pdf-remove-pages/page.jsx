@@ -178,25 +178,33 @@ export default function PdfRemovePagesPage() {
 
     async function handleDownloadWord() {
         if (downloadWordUrl) {
-            window.open(`${API_BASE}${downloadWordUrl}`, "_blank");
+            triggerDownload(`${API_BASE}${downloadWordUrl}`, "AllTools_Removed_Pages.docx");
             return;
         }
         setConvertingWord(true);
         try {
             const form = new FormData();
-            // Re-use the result PDF file by passing its URL
             form.append("url", `${API_BASE}/uploads/${resultPdfName}`);
             const res = await fetch(`${API_BASE}/api/convert/pdf-to-word`, { method: "POST", body: form });
             if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.detail || "Word conversion failed."); }
             const data = await res.json();
             const wordUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
             setDownloadWordUrl(wordUrl);
-            window.open(`${API_BASE}${wordUrl}`, "_blank");
+            triggerDownload(`${API_BASE}${wordUrl}`, "AllTools_Removed_Pages.docx");
         } catch (err) {
             setErrorMsg(err.message || "Failed to convert to Word.");
         } finally {
             setConvertingWord(false);
         }
+    }
+
+    function triggerDownload(url, filename) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 
     function handleReset() {
@@ -451,7 +459,7 @@ export default function PdfRemovePagesPage() {
                         {/* PDF Download */}
                         <a
                             href={`${API_BASE}${downloadUrl}`}
-                            download
+                            download="AllTools_Removed_Pages.pdf"
                             className="flex flex-col items-center gap-2 py-5 px-4 bg-gradient-to-br from-red-500 to-orange-500 text-white rounded-2xl font-bold hover:opacity-90 transition shadow-md group"
                         >
                             <span className="text-3xl group-hover:scale-110 transition-transform">📄</span>

@@ -428,7 +428,7 @@ export default function PdfSplitPage() {
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Successfully Split!</h2>
                     <p className="text-gray-500 text-center mb-8">Your PDF has been processed without quality loss and is ready for download.</p>
 
-                    <a href={downloadUrl} download className="w-full py-4 bg-green-600 text-white text-lg rounded-xl font-bold shadow hover:bg-green-700 transition flex items-center justify-center gap-2 mb-4">
+                    <a href={downloadUrl} download="AllTools_Split_Pages.zip" className="w-full py-4 bg-green-600 text-white text-lg rounded-xl font-bold shadow hover:bg-green-700 transition flex items-center justify-center gap-2 mb-4">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         Download Output File
                     </a>

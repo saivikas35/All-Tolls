@@ -416,13 +416,13 @@ export default function WordRemovePagesPage() {
 
                             <div className="w-full max-w-sm">
                                 {downloadFormat === "docx" ? (
-                                    <a href={`${API_BASE}${downloadUrl}`} download
+                                    <a href={`${API_BASE}${downloadUrl}`} download="AllTools_Removed_Pages.docx"
                                         className="flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:opacity-90 transition shadow-lg text-lg">
                                         <span className="text-2xl">📝</span>
                                         Download Word (.docx)
                                     </a>
                                 ) : (
-                                    <a href={`${API_BASE}${downloadUrl}`} download
+                                    <a href={`${API_BASE}${downloadUrl}`} download="AllTools_Removed_Pages.pdf"
                                         className="flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-2xl font-bold hover:opacity-90 transition shadow-lg text-lg">
                                         <span className="text-2xl">📄</span>
                                         Download PDF

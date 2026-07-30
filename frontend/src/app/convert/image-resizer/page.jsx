@@ -409,7 +409,7 @@ export default function ImageResizerPage() {
                             New dimensions: <span className="font-bold text-black border px-2 py-1 rounded bg-gray-50">{finalWidth} × {finalHeight} px</span>
                         </p>
 
-                        <a href={downloadUrl} download className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
+                        <a href={downloadUrl} download="AllTools_Resized_Image.png" className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
                             Download Image
                         </a>
 

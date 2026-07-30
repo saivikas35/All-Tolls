@@ -593,7 +593,10 @@ export default function ToolConvertPage() {
             )}
             <a
               href={downloadUrl}
-              download={downloadUrl.split('/').pop() || "converted_file"}
+              download={(() => {
+                const ext = (downloadUrl.split('.').pop() || 'file').split('?')[0];
+                return `AllTools_${toolId}_converted.${ext}`;
+              })()}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-semibold cursor-pointer shadow-md"
             >
               ⬇️ Download Converted File
