@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker";
+import { downloadFile } from "@/lib/downloadFile";
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
@@ -178,7 +179,7 @@ export default function PdfRemovePagesPage() {
 
     async function handleDownloadWord() {
         if (downloadWordUrl) {
-            triggerDownload(`${API_BASE}${downloadWordUrl}`, "AllTools_Removed_Pages.docx");
+            await downloadFile(`${API_BASE}${downloadWordUrl}`, "AllTools_Removed_Pages.docx");
             return;
         }
         setConvertingWord(true);
@@ -190,21 +191,12 @@ export default function PdfRemovePagesPage() {
             const data = await res.json();
             const wordUrl = data.downloadUrl.startsWith('/api/') ? data.downloadUrl : data.downloadUrl.replace('/uploads/', '/api/download/');
             setDownloadWordUrl(wordUrl);
-            triggerDownload(`${API_BASE}${wordUrl}`, "AllTools_Removed_Pages.docx");
+            await downloadFile(`${API_BASE}${wordUrl}`, "AllTools_Removed_Pages.docx");
         } catch (err) {
             setErrorMsg(err.message || "Failed to convert to Word.");
         } finally {
             setConvertingWord(false);
         }
-    }
-
-    function triggerDownload(url, filename) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
     }
 
     function handleReset() {
@@ -457,15 +449,14 @@ export default function PdfRemovePagesPage() {
                     {/* Format download buttons */}
                     <div className="w-full grid grid-cols-2 gap-3 mt-2">
                         {/* PDF Download */}
-                        <a
-                            href={`${API_BASE}${downloadUrl}`}
-                            download="AllTools_Removed_Pages.pdf"
-                            className="flex flex-col items-center gap-2 py-5 px-4 bg-gradient-to-br from-red-500 to-orange-500 text-white rounded-2xl font-bold hover:opacity-90 transition shadow-md group"
+                        <button
+                            onClick={() => downloadFile(`${API_BASE}${downloadUrl}`, "AllTools_Removed_Pages.pdf")}
+                            className="flex flex-col items-center gap-2 py-5 px-4 bg-gradient-to-br from-red-500 to-orange-500 text-white rounded-2xl font-bold hover:opacity-90 transition shadow-md cursor-pointer group"
                         >
                             <span className="text-3xl group-hover:scale-110 transition-transform">📄</span>
                             <span className="text-base">Download as PDF</span>
                             <span className="text-xs opacity-75">Compressed & print-ready</span>
-                        </a>
+                        </button>
 
                         {/* Word Download */}
                         <button

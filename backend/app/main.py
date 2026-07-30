@@ -68,10 +68,13 @@ from app.routes.feedback import router as feedback_router
 app.include_router(feedback_router, prefix="/api")              # /api/feedback
 
 from fastapi.responses import FileResponse
+import re
+from typing import Optional
+from urllib.parse import quote
 
 @app.get("/api/download/{filename}")
-def download_file(filename: str):
-    """Force download with proper MIME type and filename attachment header"""
+def download_file(filename: str, name: Optional[str] = None):
+    """Force download with proper MIME type, Content-Length, and RFC-5987 filename header."""
     file_path = os.path.join("uploads", filename)
     if not os.path.exists(file_path):
         from fastapi import HTTPException
@@ -79,26 +82,54 @@ def download_file(filename: str):
 
     ext = os.path.splitext(filename)[1].lower()
     media_types = {
-        ".pdf": "application/pdf",
+        ".pdf":  "application/pdf",
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        ".jpg": "image/jpeg",
+        ".jpg":  "image/jpeg",
         ".jpeg": "image/jpeg",
-        ".png": "image/png",
+        ".png":  "image/png",
         ".webp": "image/webp",
-        ".zip": "application/zip",
-        ".rar": "application/vnd.rar",
-        ".7z": "application/x-7z-compressed"
+        ".zip":  "application/zip",
+        ".rar":  "application/vnd.rar",
+        ".7z":   "application/x-7z-compressed",
     }
     media_type = media_types.get(ext, "application/octet-stream")
 
+    # Determine user-friendly download filename
+    if name and name.strip():
+        download_name = name.strip()
+        # Ensure extension is present
+        if not os.path.splitext(download_name)[1] and ext:
+            download_name += ext
+    else:
+        base = os.path.splitext(filename)[0]
+        # Strip common UUID prefix patterns produced by the backend
+        clean_base = re.sub(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', '', base)
+        clean_base = re.sub(r'^[a-f0-9]{32}', '', clean_base).strip('_').strip('-')
+        # Strip trailing _AllTools suffix but keep meaningful prefix
+        clean_base = re.sub(r'_AllTools$', '', clean_base, flags=re.IGNORECASE).strip('_')
+        if not clean_base.strip():
+            clean_base = "AllTools_Document"
+        download_name = f"{clean_base}{ext}"
+
+    # RFC 5987 encoding — safe for all characters including non-ASCII
+    encoded_name = quote(download_name, safe="")
+    content_disposition = (
+        f'attachment; filename="{download_name}"; filename*=UTF-8\'\'{encoded_name}'
+    )
+
+    file_size = os.path.getsize(file_path)
+
     return FileResponse(
         path=file_path,
-        filename=filename,
         media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        headers={
+            "Content-Disposition": content_disposition,
+            "Content-Length": str(file_size),
+        },
     )
+
 
 @app.get("/")
 def root():
