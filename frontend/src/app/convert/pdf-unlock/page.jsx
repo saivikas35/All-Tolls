@@ -273,10 +273,10 @@ export default function PdfUnlockPage() {
                                 ? <p className="text-gray-500 mb-8">This PDF was not password protected. Here is a clean copy for you.</p>
                                 : <p className="text-gray-500 mb-8">Password removed successfully. Your PDF is now freely accessible.</p>
                             }
-                            <a href={`${API_BASE}${downloadUrl}`} download="AllTools_Unlocked.pdf"
-                                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white text-lg rounded-2xl font-bold shadow-lg transition flex items-center justify-center gap-2 mb-4">
+                            <button onClick={() => downloadFile(`${API_BASE}${downloadUrl}`, "AllTools_Unlocked.pdf")}
+                                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white text-lg rounded-2xl font-bold shadow-lg transition flex items-center justify-center gap-2 mb-4 cursor-pointer">
                                 ⬇️ Download Unlocked PDF
-                            </a>
+                            </button>
                             <button onClick={handleReset}
                                 className="w-full py-3 border-2 border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition">
                                 Unlock Another PDF

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker";
+import { downloadFile } from "@/lib/downloadFile";
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
@@ -428,10 +429,10 @@ export default function PdfSplitPage() {
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Successfully Split!</h2>
                     <p className="text-gray-500 text-center mb-8">Your PDF has been processed without quality loss and is ready for download.</p>
 
-                    <a href={downloadUrl} download="AllTools_Split_Pages.zip" className="w-full py-4 bg-green-600 text-white text-lg rounded-xl font-bold shadow hover:bg-green-700 transition flex items-center justify-center gap-2 mb-4">
+                    <button onClick={() => downloadFile(downloadUrl, "AllTools_Split_Pages.zip")} className="w-full py-4 bg-green-600 text-white text-lg rounded-xl font-bold shadow hover:bg-green-700 transition flex items-center justify-center gap-2 mb-4 cursor-pointer">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         Download Output File
-                    </a>
+                    </button>
 
                     <div className="flex gap-4 w-full">
                         <button onClick={() => setStep("upload")} className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">Split Another</button>

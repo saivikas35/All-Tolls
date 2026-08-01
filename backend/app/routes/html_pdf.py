@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 import os
 import uuid
 from typing import Optional
-from app.utils import get_file_or_url
+from app.utils import get_file_or_url, generate_download_url, validate_output_file
 
 router = APIRouter()
 UPLOAD_DIR = "uploads"
@@ -57,4 +57,5 @@ def html_to_pdf(
             detail=f"HTML to PDF conversion failed: {str(e)}"
         )
 
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}

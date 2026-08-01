@@ -11,7 +11,7 @@ import shutil
 import platform
 import copy
 from typing import Optional, List
-from app.utils import get_file_or_url, save_upload
+from app.utils import get_file_or_url, save_upload, generate_download_url, validate_output_file
 
 router = APIRouter()
 UPLOAD_DIR = "uploads"
@@ -117,7 +117,8 @@ def word_to_pdf(
 
     in_path = get_file_or_url(file, url, suffix=ext)
     out_name = _convert_to_pdf_via_libreoffice(in_path)
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(os.path.join(UPLOAD_DIR, out_name), ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── POWERPOINT → PDF ─────────────────────────────────────────────────────────
@@ -138,7 +139,8 @@ def ppt_to_pdf(
 
     in_path = get_file_or_url(file, url, suffix=ext)
     out_name = _convert_to_pdf_via_libreoffice(in_path)
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(os.path.join(UPLOAD_DIR, out_name), ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── EXCEL → PDF ──────────────────────────────────────────────────────────────
@@ -161,7 +163,8 @@ def excel_to_pdf(
     if ext == ".xlsx":
         _prepare_excel_for_pdf(in_path)
     out_name = _convert_to_pdf_via_libreoffice(in_path)
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(os.path.join(UPLOAD_DIR, out_name), ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── WORD → PDF PREVIEW (for page-selector thumbnail generation) ──────────────
@@ -316,6 +319,8 @@ def word_remove_pages(
 
     if output_format == "pdf":
         out_pdf_name = _convert_to_pdf_via_libreoffice(out_docx_path)
-        return {"success": True, "downloadUrl": f"/uploads/{out_pdf_name}", "format": "pdf"}
+        validate_output_file(os.path.join(UPLOAD_DIR, out_pdf_name), ".pdf")
+        return {"success": True, "downloadUrl": generate_download_url(out_pdf_name), "format": "pdf"}
 
-    return {"success": True, "downloadUrl": f"/uploads/{out_docx_name}", "format": "docx"}
+    validate_output_file(out_docx_path, ".docx")
+    return {"success": True, "downloadUrl": generate_download_url(out_docx_name), "format": "docx"}

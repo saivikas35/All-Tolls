@@ -85,3 +85,29 @@ def cleanup_old_uploads(max_age_hours: float = 1.0) -> int:
                 pass
     return removed_count
 
+
+def generate_download_url(filename: str) -> str:
+    """Generate a clean /api/download/<filename> URL."""
+    clean_fn = os.path.basename(filename)
+    return f"/api/download/{clean_fn}"
+
+
+def validate_output_file(file_path: str, expected_ext: Optional[str] = None) -> bool:
+    """
+    Validate that the output file exists, is non-empty, and optionally has the expected extension.
+    Raises HTTPException 500 if validation fails.
+    """
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=500, detail="Generated output file was not found.")
+    if os.path.getsize(file_path) <= 0:
+        raise HTTPException(status_code=500, detail="Generated output file is empty.")
+    if expected_ext:
+        actual_ext = os.path.splitext(file_path)[1].lower()
+        if actual_ext != expected_ext.lower():
+            raise HTTPException(
+                status_code=500,
+                detail=f"Generated file extension mismatch: expected {expected_ext}, got {actual_ext}"
+            )
+    return True
+
+

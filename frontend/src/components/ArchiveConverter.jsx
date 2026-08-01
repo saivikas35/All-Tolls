@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker";
+import { downloadFile } from "@/lib/downloadFile";
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
@@ -234,13 +235,12 @@ export default function ArchiveConverter() {
               </div>
             )}
             {resp.downloadUrl && (
-              <a
-                href={resp.downloadUrl.replace('/uploads/', '/api/download/')}
-                download={resp.downloadUrl.split('/').pop() || "archive"}
+              <button
+                onClick={() => downloadFile(resp.downloadUrl, file?.name ? `AllTools_Converted_${file.name}` : "AllTools_Archive")}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold transition cursor-pointer shadow-md"
               >
                 ⬇️ Download Converted Archive
-              </a>
+              </button>
             )}
           </div>
         )}

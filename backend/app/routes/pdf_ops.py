@@ -13,7 +13,7 @@ import base64
 import pdfplumber
 import pandas as pd
 from typing import List, Optional
-from app.utils import get_file_or_url, save_upload, clean_param
+from app.utils import get_file_or_url, save_upload, clean_param, generate_download_url, validate_output_file
 
 router = APIRouter()
 UPLOAD_DIR = "uploads"
@@ -95,8 +95,8 @@ def pdf_merge(
     out_path = os.path.join(UPLOAD_DIR, out_name)
     with open(out_path, "wb") as out_f:
         writer.write(out_f)
-
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── SPLIT EXECUTION ───────────────────────────────────────────────────────────
@@ -135,7 +135,8 @@ def pdf_split(
         out_path = os.path.join(UPLOAD_DIR, out_name)
         with open(out_path, "wb") as pf:
             writer.write(pf)
-        return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+        validate_output_file(out_path, ".pdf")
+        return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
     zip_name = f"split_{uuid.uuid4().hex[:8]}_AllTools.zip"
     zip_path = os.path.join(UPLOAD_DIR, zip_name)
@@ -169,9 +170,8 @@ def pdf_split(
                 part_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}_{part_name}")
                 with open(part_path, "wb") as pf:
                     writer.write(pf)
-                zf.write(part_path, arcname=part_name)
-
-    return {"success": True, "downloadUrl": f"/uploads/{zip_name}"}
+    validate_output_file(zip_path, ".zip")
+    return {"success": True, "downloadUrl": generate_download_url(zip_name)}
 
 
 # ─── REMOVE PAGES ────────────────────────────────────────────────────────────
@@ -205,7 +205,8 @@ def pdf_remove_pages(
     with open(out_path, "wb") as f:
         writer.write(f)
 
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── COMPRESS ────────────────────────────────────────────────────────────────
@@ -237,9 +238,10 @@ def pdf_compress(
     new_size = os.path.getsize(out_path)
     saved_pct = round((1 - new_size / orig_size) * 100, 1) if orig_size > 0 else 0
 
+    validate_output_file(out_path, ".pdf")
     return {
         "success": True,
-        "downloadUrl": f"/uploads/{out_name}",
+        "downloadUrl": generate_download_url(out_name),
         "originalSize": orig_size,
         "compressedSize": new_size,
         "savedPercent": saved_pct,
@@ -286,8 +288,8 @@ def pdf_to_excel(
         for sheet_name, table in extracted_tables:
             df = pd.DataFrame(table)
             df.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
-
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".xlsx")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── PDF PASSWORD PROTECT ────────────────────────────────────────────────────
@@ -322,7 +324,8 @@ def pdf_protect(
     with open(out_path, "wb") as f:
         writer.write(f)
         
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── PDF PASSWORD UNLOCK ─────────────────────────────────────────────────────
@@ -346,7 +349,8 @@ def pdf_unlock(
         out_path = os.path.join(UPLOAD_DIR, out_name)
         with open(out_path, "wb") as f:
             writer.write(f)
-        return {"success": True, "downloadUrl": f"/uploads/{out_name}", "note": "Document was not password protected."}
+        validate_output_file(out_path, ".pdf")
+        return {"success": True, "downloadUrl": generate_download_url(out_name), "note": "Document was not password protected."}
         
     if not password or not password.strip():
         raise HTTPException(status_code=400, detail="Password is required to unlock.")
@@ -368,7 +372,8 @@ def pdf_unlock(
     with open(out_path, "wb") as f:
         writer.write(f)
         
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── PDF WATERMARK ───────────────────────────────────────────────────────────
@@ -407,7 +412,8 @@ def pdf_watermark(
     doc.save(out_path)
     doc.close()
 
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── PDF PAGE NUMBERS ────────────────────────────────────────────────────────
@@ -449,7 +455,8 @@ def pdf_page_numbers(
     doc.save(out_path)
     doc.close()
 
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 

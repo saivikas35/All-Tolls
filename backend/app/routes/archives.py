@@ -17,7 +17,7 @@ import shutil
 import platform
 import subprocess
 from typing import Optional
-from app.utils import get_file_or_url, save_upload, clean_param
+from app.utils import get_file_or_url, save_upload, clean_param, generate_download_url, validate_output_file
 
 local_unrar = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "UnRAR.exe"))
 if os.path.exists(local_unrar):
@@ -175,16 +175,18 @@ def archive_convert(
 
     if target == "zip_to_rar":
         out_name, note = _zip_to_rar(in_path)
+        validate_output_file(os.path.join(UPLOAD_DIR, out_name))
         return {
             "status": "success",
-            "downloadUrl": f"/uploads/{out_name}",
+            "downloadUrl": generate_download_url(out_name),
             "note": note or None,
         }
     elif target == "rar_to_zip":
         out_name = _rar_to_zip(in_path)
+        validate_output_file(os.path.join(UPLOAD_DIR, out_name), ".zip")
         return {
             "status": "success",
-            "downloadUrl": f"/uploads/{out_name}",
+            "downloadUrl": generate_download_url(out_name),
         }
     else:
         raise HTTPException(status_code=400, detail=f"Unknown target: {target}")
@@ -199,9 +201,10 @@ def zip_to_rar_tool(
 ):
     in_path = get_file_or_url(file, url, suffix=".zip")
     out_name, note = _zip_to_rar(in_path)
+    validate_output_file(os.path.join(UPLOAD_DIR, out_name))
     return {
         "success": True,
-        "downloadUrl": f"/uploads/{out_name}",
+        "downloadUrl": generate_download_url(out_name),
         "note": note or None,
     }
 
@@ -213,4 +216,5 @@ def rar_to_zip_tool(
 ):
     in_path = get_file_or_url(file, url, suffix=".rar")
     out_name = _rar_to_zip(in_path)
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(os.path.join(UPLOAD_DIR, out_name), ".zip")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}

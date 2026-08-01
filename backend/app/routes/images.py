@@ -9,7 +9,7 @@ import io
 import uuid
 from typing import Optional
 from rembg import remove
-from app.utils import get_file_or_url, clean_param
+from app.utils import get_file_or_url, clean_param, generate_download_url, validate_output_file
 
 router = APIRouter()
 
@@ -38,10 +38,11 @@ def jpg_to_png(
         else:
             img.save(output_path, format="PNG", optimize=True)
         
+        validate_output_file(output_path, ".png")
         return {
             "success": True,
             "engine": "pillow",
-            "downloadUrl": f"/uploads/{output_filename}",
+            "downloadUrl": generate_download_url(output_filename),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
@@ -78,10 +79,11 @@ def png_to_jpg(
         
         img.save(output_path, format="JPEG", quality=quality, optimize=True)
         
+        validate_output_file(output_path, ".jpg")
         return {
             "success": True,
             "engine": "pillow",
-            "downloadUrl": f"/uploads/{output_filename}",
+            "downloadUrl": generate_download_url(output_filename),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
@@ -108,10 +110,11 @@ def jpg_to_webp(
         img = Image.open(in_path)
         img.save(output_path, format="WEBP", quality=quality, method=6)
         
+        validate_output_file(output_path, ".webp")
         return {
             "success": True,
             "engine": "pillow",
-            "downloadUrl": f"/uploads/{output_filename}",
+            "downloadUrl": generate_download_url(output_filename),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
@@ -136,10 +139,11 @@ def webp_to_png(
         img = Image.open(in_path)
         img.save(output_path, format="PNG", optimize=True)
         
+        validate_output_file(output_path, ".png")
         return {
             "success": True,
             "engine": "pillow",
-            "downloadUrl": f"/uploads/{output_filename}",
+            "downloadUrl": generate_download_url(output_filename),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
@@ -211,10 +215,11 @@ def image_compress(
         elif target_ext == '.webp':
             img.save(output_path, format="WEBP", quality=quality, method=6)
         
+        validate_output_file(output_path)
         return {
             "success": True,
             "engine": "pillow",
-            "downloadUrl": f"/uploads/{output_filename}",
+            "downloadUrl": generate_download_url(output_filename),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Compression failed: {str(e)}")
@@ -267,10 +272,11 @@ def remove_background(
         else:
             img.save(output_path, format="PNG")
         
+        validate_output_file(output_path)
         return {
             "success": True,
             "engine": "rembg",
-            "downloadUrl": f"/uploads/{output_filename}",
+            "downloadUrl": generate_download_url(output_filename),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Background removal failed: {str(e)}")
@@ -358,10 +364,11 @@ def image_resize(
 
         img.save(output_path, **save_kwargs)
         
+        validate_output_file(output_path)
         return {
             "success": True,
             "engine": "pillow",
-            "downloadUrl": f"/uploads/{output_filename}",
+            "downloadUrl": generate_download_url(output_filename),
             "newWidth": new_width,
             "newHeight": new_height
         }
