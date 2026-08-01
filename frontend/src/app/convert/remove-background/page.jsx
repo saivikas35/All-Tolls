@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Head from "next/head";
 import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker";
+import { downloadFile } from "@/lib/downloadFile";
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 
@@ -308,9 +309,9 @@ export default function RemoveBackgroundPage() {
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Background Removed!</h2>
                         <p className="text-gray-500 text-center mb-8">Your image has been processed using U2Net AI.</p>
 
-                        <a href={downloadUrl} download="AllTools_No_Background.png" className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
+                        <button onClick={() => downloadFile(downloadUrl, "AllTools_No_Background.png")} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4 cursor-pointer">
                             Download Image
-                        </a>
+                        </button>
 
                         <div className="flex gap-4 w-full">
                             <button onClick={() => { setStep("upload"); setFile(null); }} className="flex-1 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition border">Process Another</button>

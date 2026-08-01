@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Head from "next/head";
 import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker";
+import { downloadFile } from "@/lib/downloadFile";
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 
@@ -409,9 +410,9 @@ export default function ImageResizerPage() {
                             New dimensions: <span className="font-bold text-black border px-2 py-1 rounded bg-gray-50">{finalWidth} × {finalHeight} px</span>
                         </p>
 
-                        <a href={downloadUrl} download="AllTools_Resized_Image.png" className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
+                        <button onClick={() => downloadFile(downloadUrl, "AllTools_Resized_Image.png")} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4 cursor-pointer">
                             Download Image
-                        </a>
+                        </button>
 
                         <div className="flex gap-4 w-full">
                             <button onClick={() => { setStep("upload"); setFile(null); }} className="flex-1 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition border">Resize Another</button>

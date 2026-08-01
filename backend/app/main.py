@@ -74,13 +74,16 @@ from urllib.parse import quote
 
 @app.get("/api/download/{filename}")
 def download_file(filename: str, name: Optional[str] = None):
-    """Force download with proper MIME type, Content-Length, and RFC-5987 filename header."""
-    file_path = os.path.join("uploads", filename)
-    if not os.path.exists(file_path):
+    """Force download with proper MIME type, Content-Length, path traversal protection, and RFC-5987 filename header."""
+    # Prevent path traversal attacks
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.join("uploads", safe_filename)
+    
+    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
         from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail="File not found or empty")
 
-    ext = os.path.splitext(filename)[1].lower()
+    ext = os.path.splitext(safe_filename)[1].lower()
     media_types = {
         ".pdf":  "application/pdf",
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -93,6 +96,7 @@ def download_file(filename: str, name: Optional[str] = None):
         ".zip":  "application/zip",
         ".rar":  "application/vnd.rar",
         ".7z":   "application/x-7z-compressed",
+        ".txt":  "text/plain; charset=utf-8",
     }
     media_type = media_types.get(ext, "application/octet-stream")
 
@@ -103,12 +107,11 @@ def download_file(filename: str, name: Optional[str] = None):
         if not os.path.splitext(download_name)[1] and ext:
             download_name += ext
     else:
-        base = os.path.splitext(filename)[0]
-        # Strip common UUID prefix patterns produced by the backend
-        clean_base = re.sub(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', '', base)
-        clean_base = re.sub(r'^[a-f0-9]{32}', '', clean_base).strip('_').strip('-')
-        # Strip trailing _AllTools suffix but keep meaningful prefix
-        clean_base = re.sub(r'_AllTools$', '', clean_base, flags=re.IGNORECASE).strip('_')
+        base = os.path.splitext(safe_filename)[0]
+        # If the file already starts with AllTools_ or clean name, preserve it
+        clean_base = re.sub(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}_?', '', base)
+        clean_base = re.sub(r'^[a-f0-9]{32}_?', '', clean_base).strip('_').strip('-')
+        # If clean_base lost prefix, make sure it has a proper name
         if not clean_base.strip():
             clean_base = "AllTools_Document"
         download_name = f"{clean_base}{ext}"

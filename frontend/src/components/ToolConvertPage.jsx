@@ -215,16 +215,11 @@ export default function ToolConvertPage() {
       const data = JSON.parse(text);
       setProgress(100);
 
-      // Build download URL: always route through Next.js proxy (/uploads/<file>)
-      // which rewrites to FastAPI /api/download/<file> with proper Content-Disposition.
-      // This keeps the request same-origin so blob download always works.
+      // Build download URL: ensure path routes via /api/download/
       let rawUrl = data.downloadUrl || "";
-      // Strip any absolute base if present (should be relative already)
       rawUrl = rawUrl.replace(/^https?:\/\/[^/]+/, "");
-      // Normalise: /api/download/X  →  /uploads/X  (proxy handles it either way,
-      // but /uploads/ is the canonical same-origin path we configured)
-      const proxyUrl = rawUrl.startsWith("/uploads/") ? rawUrl
-        : rawUrl.replace("/api/download/", "/uploads/");
+      const proxyUrl = rawUrl.startsWith("/api/download/") ? rawUrl
+        : rawUrl.replace("/uploads/", "/api/download/");
 
       // Derive a human-readable filename from the server path
       const serverFilename = proxyUrl.split("/").pop() || "download";

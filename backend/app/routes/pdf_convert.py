@@ -11,7 +11,7 @@ import os
 import uuid
 import zipfile
 from typing import List, Optional
-from app.utils import get_file_or_url, save_upload
+from app.utils import get_file_or_url, save_upload, generate_download_url, validate_output_file
 
 router = APIRouter()
 UPLOAD_DIR = "uploads"
@@ -46,7 +46,8 @@ def pdf_to_jpg(
     if len(image_paths) == 1:
         # Single page — return image directly
         img_name, img_path = image_paths[0]
-        return {"success": True, "downloadUrl": f"/uploads/{img_name}"}
+        validate_output_file(img_path, ".jpg")
+        return {"success": True, "downloadUrl": generate_download_url(img_name)}
     else:
         # Multiple pages — return ZIP
         zip_name = f"pdf_images_{uuid.uuid4().hex[:8]}_AllTools.zip"
@@ -54,7 +55,8 @@ def pdf_to_jpg(
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for img_name, img_path in image_paths:
                 zf.write(img_path, arcname=img_name)
-        return {"success": True, "downloadUrl": f"/uploads/{zip_name}"}
+        validate_output_file(zip_path, ".zip")
+        return {"success": True, "downloadUrl": generate_download_url(zip_name)}
 
 
 # ─── JPG / IMAGE → PDF ───────────────────────────────────────────────────────
@@ -101,7 +103,8 @@ def jpg_to_pdf(
         append_images=images[1:],
     )
 
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".pdf")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── PDF OCR ─────────────────────────────────────────────────────────────────
@@ -135,7 +138,8 @@ def pdf_ocr(
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(full_text)
 
-    return {"success": True, "downloadUrl": f"/uploads/{out_name}"}
+    validate_output_file(out_path, ".txt")
+    return {"success": True, "downloadUrl": generate_download_url(out_name)}
 
 
 # ─── EXTRACT TEXT (for ATS Score) ────────────────────────────────────────────

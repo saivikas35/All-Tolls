@@ -3,6 +3,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { downloadFile } from "@/lib/downloadFile";
 
 /**
  * ToolConvertPage (client)
@@ -100,16 +101,7 @@ export default function ToolConvertPage({ toolId = "unknown-tool" }) {
 
   function handleDownload() {
     if (!downloadUrl) return;
-    // create an anchor to download
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    // name it based on tool id
-    a.download = `${toolId}-result.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    // optional: revoke after a bit
-    setTimeout(() => URL.revokeObjectURL(downloadUrl), 60 * 1000);
+    downloadFile(downloadUrl, `AllTools_${toolId}_result.txt`);
   }
 
   function handleUseUrlExample() {

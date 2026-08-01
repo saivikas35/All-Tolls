@@ -119,7 +119,7 @@ export default function ToolUpload({ tool }) {
 
   function onDownload() {
     if (!downloadUrl) return;
-    window.open(downloadUrl, "_blank");
+    downloadFile(downloadUrl, file?.name ? `converted-${file.name}` : "result.bin");
   }
 
   return (

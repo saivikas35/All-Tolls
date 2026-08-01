@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Head from "next/head";
 import { loadGooglePicker, openGoogleDrivePicker } from "@/lib/googleDrivePicker";
+import { downloadFile } from "@/lib/downloadFile";
 
 const DROPBOX_APP_KEY = "2t2su51ec3xgf1u";
 
@@ -325,9 +326,9 @@ export default function PdfPasswordPage() {
                                     : 'Password removed. You can now open this PDF freely.'}
                             </p>
 
-                            <a href={downloadUrl} download={mode === 'protect' ? 'AllTools_Protected.pdf' : 'AllTools_Unlocked.pdf'} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4">
-                                Download PDF
-                            </a>
+                             <button onClick={() => downloadFile(downloadUrl, mode === 'protect' ? 'AllTools_Protected.pdf' : 'AllTools_Unlocked.pdf')} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg rounded-xl font-bold shadow transition flex items-center justify-center gap-2 mb-4 cursor-pointer">
+                                 Download PDF
+                             </button>
 
                             <div className="flex gap-4 w-full">
                                 <button onClick={() => handleModeSwitch(mode)} className="flex-1 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition border">Process Another</button>

@@ -37,7 +37,7 @@ def get_soffice_path():
 
 from typing import Optional
 from fastapi import Form
-from app.utils import get_file_or_url
+from app.utils import get_file_or_url, generate_download_url, validate_output_file
 
 @router.post("/pdf-to-word")
 def pdf_to_word(
@@ -73,12 +73,12 @@ def pdf_to_word(
             except Exception as e:
                 print(f"[DEBUG] Header formatting failed (non-critical): {e}")
         
-        if os.path.exists(output_docx):
-            return {
-                "success": True,
-                "engine": "pdf2docx",
-                "downloadUrl": f"/uploads/{os.path.basename(output_docx)}",
-            }
+        validate_output_file(output_docx, ".docx")
+        return {
+            "success": True,
+            "engine": "pdf2docx",
+            "downloadUrl": generate_download_url(os.path.basename(output_docx)),
+        }
     except Exception as e:
         print(f"[DEBUG] pdf2docx failed with exception: {e}")
         raise HTTPException(
