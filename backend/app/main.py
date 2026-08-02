@@ -1,6 +1,9 @@
 import sys
+import time as _time
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
+
+_START_TIME = _time.time()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -137,3 +140,32 @@ def download_file(filename: str, name: Optional[str] = None):
 @app.get("/")
 def root():
     return {"status": "Backend running", "version": "2.0"}
+
+
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint — returns uptime, upload folder stats, and version."""
+    uptime_seconds = int(_time.time() - _START_TIME)
+    hours, remainder = divmod(uptime_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    upload_dir = "uploads"
+    file_count = 0
+    total_size_bytes = 0
+    if os.path.exists(upload_dir):
+        for f in os.listdir(upload_dir):
+            fp = os.path.join(upload_dir, f)
+            if os.path.isfile(fp):
+                file_count += 1
+                total_size_bytes += os.path.getsize(fp)
+
+    return {
+        "status": "ok",
+        "version": "2.0",
+        "uptime": f"{hours}h {minutes}m {seconds}s",
+        "uptime_seconds": uptime_seconds,
+        "uploads": {
+            "file_count": file_count,
+            "total_size_mb": round(total_size_bytes / 1024 / 1024, 2),
+        },
+    }
