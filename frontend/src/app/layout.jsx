@@ -1,5 +1,5 @@
 import "../styles/globals.css";
-import Navbar from "@/components/Navbar";
+import NavbarWrapper from "@/components/NavbarWrapper";
 import Script from "next/script";
 
 export const metadata = {
@@ -33,7 +33,7 @@ export default function RootLayout({ children }) {
       </head>
 
       <body className="bg-gray-50">
-        <Navbar />
+        <NavbarWrapper />
         <main>{children}</main>
       </body>
     </html>
